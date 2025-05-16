@@ -19,12 +19,21 @@ from PIL import Image
 
 class ImagePipeline:
     def __init__(self, size, batch_size, device):
+        """
+        :param size: the size to resize image (224, 224)
+        :param batch_size: batch size was 16
+        :param device: this uses the CPU
+        """
         self.size = size
         self.batch_size = batch_size
         self.device = device
     
     def load_preprocess_images(self, path):
-
+        """
+        :param path: respective folder path for training / test set
+        :returns: a dataloader with preprocessing applied to the dataset and number of 
+        target classes in the dataset
+        """
         transform = transforms.Compose([
             transforms.Resize(self.size),
             transforms.ToTensor(),
@@ -37,12 +46,14 @@ class ImagePipeline:
         loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
         return loader, num_classes
     
-    def get_loaders(self, config, device):
-
+    def get_loaders(self, config):
+        """
+        :param config: represents parameters to choose which model to run, but here only batch size
+        is used
+        :returns: returns all loaders (train, val, test) and number of target classes
+        """
         train_path = "dataset/Training/"
         test_path = "dataset/Testing/"
-
-        
         train_loader, num_classes = self.load_preprocess_images(train_path)
         
         size = len(train_loader.dataset)
@@ -57,6 +68,12 @@ class ImagePipeline:
         return train_loader, val_loader, test_loader, num_classes
     
     def evaluate(self, model, loader):
+        """
+        :param model: the chosen model (ResNet/EfficientNet/GoogleNet)
+        :param loader: this is the test loader, since after training it is evaluated
+        on the test set
+        :returns: outputs accuracy on test set
+        """
         model.eval()
         correct, total = 0, 0
         with torch.no_grad():
@@ -70,6 +87,15 @@ class ImagePipeline:
         return 100 * correct / total
 
     def train_model(self, model, train_loader, val_loader, criterion, optimizer, epochs=5):
+        """
+        :param model: the chosen model (ResNet/EfficientNet/GoogleNet)
+        :param train_loader: loader for the training set
+        :param val_loader: loader for the validation set
+        :param criterion: this is the loss function, which was cross entropy
+        :param optimizer: the adam optimizer was used
+        :param epochs: number of iterations to run evaluation on validation set
+        :returns: returns the training and validation accuracy per epoch
+        """
         for epoch in range(epochs):
             model.train()
             running_loss, correct, total = 0.0, 0, 0
@@ -91,6 +117,16 @@ class ImagePipeline:
                 f"Train Acc={train_acc:.2f}%, Val Acc={val_acc:.2f}%")
 
     def run_config(self, config, device, num_classes, train_loader, val_loader, test_loader):
+        """
+        :param config: the parameters for which model to run
+        :param device: this uses the CPU
+        :param num_classes: number of target classes
+        :param train_loader: loader for training set
+        :param val_loader: loader for validation set
+        :param test_loader: loader for test_set
+        :returns: this runs the config for training model on validation set and evaluating on test set, then 
+        saves the models weights into "models_saved" folder 
+        """
         
         weights = ResNet18_Weights.DEFAULT
         model = resnet18(weights=weights)
@@ -115,7 +151,19 @@ class ImagePipeline:
         print(f"\n🧪 Final Test Accuracy: {test_acc:.2f}%")
 
 def get_image_metrics(path, config, num_classes, class_names, device, test_loader):
-    
+    """
+    :param path: path for the saved model weights
+    :param config: the parameters for which model to run
+    :param num_classes: number of target classes
+    :param class_names: respective names for the target classes
+    :param device: this uses the CPU
+    :param test_loader: loader for the test set
+    :returns: 
+        - saves the confusion matrices of all models in "confusion_matrix" folder
+        - correct & misclassified predictions for all models in "misclassified" folder
+        - for the same images in "misclassified" folder it also saves feature importance
+        plots from Grad-CAM in "feature_importance" folder
+    """
     model = resnet18(weights=ResNet18_Weights.DEFAULT)
     model.fc = nn.Linear(model.fc.in_features, num_classes)
 
@@ -166,7 +214,17 @@ def get_image_metrics(path, config, num_classes, class_names, device, test_loade
         get_feature_importance(model, config, all_images[idx], all_labels[idx], all_preds[idx], idx)
 
 def get_feature_importance(model, config, all_images, all_preds, all_labels, idx):
-    
+    """
+    :param model: the chosen model (ResNet/EfficientNet/GoogleNet)
+    :param config: the parameters for which model to run
+    :param all_images: all test images
+    :param all_preds: all predictions for these test images
+    :param all_labels: all labels for those test images
+    :param idx: the index from the 10 misclassified images, used here
+    to view feature importance on them
+    :returns: feature importance plots of those 10 images are saved in
+    "feature_importance" folder
+    """
     if config["model"] == "ResNet":
         blocks = list(model.layer4.children())
     elif config["model"] == "GoogleNet":
@@ -197,6 +255,14 @@ def get_feature_importance(model, config, all_images, all_preds, all_labels, idx
 
     
 def misclassified_images(config, all_images, all_preds, all_labels):
+    """
+    :param config: the parameters for which model to run
+    :param all_images: all test images
+    :param all_preds: all predictions for these test images
+    :param all_labels: all labels for those test images
+    :returns: saves 10 correctly and misclassified images in the 
+    "misclassified" folder
+    """
     correct_idx = [i for i in range(len(all_labels)) if all_labels[i] == all_preds[i]]
     incorrect_idx = [i for i in range(len(all_labels)) if all_labels[i] != all_preds[i]]
 
@@ -238,6 +304,15 @@ def misclassified_images(config, all_images, all_preds, all_labels):
 
 
 def save_model_weights(config, device, num_classes, train_loader, val_loader, test_loader):
+    """
+    :param config: the parameters for which model to run
+    :param device: this uses the CPU
+    :param num_classes: number of target classes
+    :param train_loader: loader for training set
+    :param val_loader: loader for validation set
+    :param test_loader: loader for test_set
+    :returns: saves the model weights in "models_saved" folder
+    """
     pipe.run_config(config, device, num_classes, train_loader, val_loader, test_loader)
 
 ##############################################################################################
@@ -268,11 +343,14 @@ train_loader, val_loader, test_loader, num_classes = pipe.get_loaders(config_res
 class_names = test_loader.dataset.classes
 num_classes = len(class_names)
 
+# you can uncomment these 3 commented lines below, if you want to run the pipeline and save the weights
 # save_model_weights(config_resnet, device, num_classes, train_loader, val_loader, test_loader)
 # save_model_weights(config_googlenet, device, num_classes, train_loader, val_loader, test_loader)
 # save_model_weights(config_efficientnet, device, num_classes, train_loader, val_loader, test_loader)
 
-# get_image_metrics("models_saved/resnet.pth", config_resnet, num_classes, class_names, device, test_loader)
+# these 3 lines are for getting all the respective images 
+# i.e. feature importance plots, misclassified vs correctly classfied, confusion matrices
+get_image_metrics("models_saved/resnet.pth", config_resnet, num_classes, class_names, device, test_loader)
 get_image_metrics("models_saved/googlenet.pth", config_googlenet, num_classes, class_names, device, test_loader)
 get_image_metrics("models_saved/efficientnet.pth", config_efficientnet, num_classes, class_names, device, test_loader)
 
