@@ -1,5 +1,8 @@
 # Group6-BrainTumor
 
+## Dependencies
+- To run the pipeline.py and efficientnet_tuning.ipynb you can refer to the requirement.txt file, where the list of necessary dependencies is provided.
+
 ## Dataset
 - The dataset we used can be found using this link: https://www.kaggle.com/datasets/masoudnickparvar/brain-tumor-mri-dataset
 - Overall, there are 7023 images, with 4 classes: glioma, meningioma, notumor, pituitary
