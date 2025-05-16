@@ -25,3 +25,7 @@
 - "efficientnet_tuning"
     - this similarly provides additional results like fine-tuning for EfficientNet
     - runs the model faster than the pipeline
+ 
+## KEY NOTE
+- If you want to rerun to get all the images, don't delete the folders
+- They have to exist to save the images
