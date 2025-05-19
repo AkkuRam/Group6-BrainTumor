@@ -339,17 +339,19 @@ config_efficientnet={
 
 device = torch.device("cpu")
 pipe = ImagePipeline((224, 224), config_resnet["batch_size"], device)
-train_loader, val_loader, test_loader, num_classes = pipe.get_loaders(config_resnet, device)
+train_loader, val_loader, test_loader, num_classes = pipe.get_loaders(config_resnet)
 class_names = test_loader.dataset.classes
 num_classes = len(class_names)
 
 # you can uncomment these 3 commented lines below, if you want to run the pipeline and save the weights
+# this is very slow around 1hr for each model - 3hrs in total
 # save_model_weights(config_resnet, device, num_classes, train_loader, val_loader, test_loader)
 # save_model_weights(config_googlenet, device, num_classes, train_loader, val_loader, test_loader)
 # save_model_weights(config_efficientnet, device, num_classes, train_loader, val_loader, test_loader)
 
 # these 3 lines are for getting all the respective images 
 # i.e. feature importance plots, misclassified vs correctly classfied, confusion matrices
+# this can take some time 5-10 mins
 get_image_metrics("models_saved/resnet.pth", config_resnet, num_classes, class_names, device, test_loader)
 get_image_metrics("models_saved/googlenet.pth", config_googlenet, num_classes, class_names, device, test_loader)
 get_image_metrics("models_saved/efficientnet.pth", config_efficientnet, num_classes, class_names, device, test_loader)
